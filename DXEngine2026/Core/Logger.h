@@ -1,6 +1,10 @@
 #pragma once
 #include <string>
 
+#define LOG_INFO(msg) Logger::Info(msg)
+#define LOG_WARN(msg) Logger::Warn(msg)
+#define LOG_ERROR(msg) Logger::Error(msg)
+
 class Logger
 {
 public:

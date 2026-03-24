@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Logger.h"
+#include "Time.h"
 #include "../Platform/Input.h"
 #include <Windows.h>
 
@@ -19,6 +20,8 @@ bool Application::Initialize()
         return false;
     }
 
+    Time::Init();
+
     Logger::Info("Application initialized.");
     return true;
 }
@@ -29,7 +32,6 @@ void Application::Run()
 
     while (m_Running && !m_Window.ShouldClose())
     {
-        Input::Update();
         m_Window.PollEvents();
 
         if (Input::IsKeyDown(VK_ESCAPE))
@@ -40,6 +42,9 @@ void Application::Run()
 
         m_Renderer.BeginFrame(0.1f, 0.1f, 0.25f, 1.0f);
         m_Renderer.EndFrame();
+
+        Time::Update();
+        Input::Update();
     }
 }
 

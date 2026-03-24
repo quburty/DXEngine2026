@@ -1,6 +1,9 @@
 #include "DX11Context.h"
 #include "../Core/Logger.h"
 
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
+
 bool DX11Context::Initialize(HWND hwnd, int width, int height)
 {
     DXGI_SWAP_CHAIN_DESC swapDesc = {};
