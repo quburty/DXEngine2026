@@ -1,5 +1,6 @@
 #include "../Framework.h"
 #include "Window.h"
+#include "D3D.h"
 
 Window::Window()
 {

@@ -37,14 +37,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 void Initialize()
 {
+	D3D::Get()->Initialize(Window::Get()->GetHWND(), Window::Get()->GetDisplayWidth(), Window::Get()->GetDisplayHeight());
 }
 
 void Update()
 {
+	D3D::Get()->Update();
 }
 
 void Render()
 {
+	D3D::Get()->Render_Begin();
+
+	D3D::Get()->Render_End();
 }
 
 void Destroy()
