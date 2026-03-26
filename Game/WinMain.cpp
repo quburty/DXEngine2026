@@ -54,5 +54,6 @@ void Render()
 
 void Destroy()
 {
+	D3D::Get()->Destroy();
 	Window::Get()->Destroy();
 }

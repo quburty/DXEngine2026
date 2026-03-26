@@ -55,4 +55,14 @@ private:
 
 	ID3D11Texture2D* depthTexture;
 	ID3D11DepthStencilView* dsv;
+
+	//temp below
+	ID3D11Buffer* vertexBuffer;
+	ID3D11InputLayout* inputLayout;
+
+	ID3D10Blob* vsBlob;
+	ID3D10Blob* psBlob;
+
+	ID3D11VertexShader* vertexShader;
+	ID3D11PixelShader* pixelShader;
 };

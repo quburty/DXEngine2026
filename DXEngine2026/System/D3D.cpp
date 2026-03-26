@@ -58,32 +58,158 @@ void D3D::Initialize(HWND hwnd, uint width, uint height)
 		);
 
 		assert(hr == S_OK);
-
-		// Create RTV
-		{
-			ID3D11Texture2D* backBuffer;
-			HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
-			assert(SUCCEEDED(hr));
-
-			hr = device->CreateRenderTargetView(backBuffer, nullptr, &rtv);
-			assert(SUCCEEDED(hr));
-
-			SAFE_RELEASE(backBuffer);
-		}
-
-		deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
-
-		// Create viewport
-		{
-			viewport.Width = Window::Get()->GetWindowWidthFloat();
-			viewport.Height = Window::Get()->GetWindowHeightFloat();
-			viewport.MinDepth = 0.0f;
-			viewport.MaxDepth = 1.0f;
-			viewport.TopLeftX = 0.0f;
-			viewport.TopLeftY = 0.0f;
-			deviceContext->RSSetViewports(1, &viewport);
-		}
 	}
+
+	// Create RTV
+	{
+		ID3D11Texture2D* backBuffer;
+		HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
+		assert(SUCCEEDED(hr));
+
+		hr = device->CreateRenderTargetView(backBuffer, nullptr, &rtv);
+		assert(SUCCEEDED(hr));
+
+		SAFE_RELEASE(backBuffer);
+	}
+
+	deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+
+	// Create viewport
+	{
+		viewport.Width = Window::Get()->GetWindowWidthFloat();
+		viewport.Height = Window::Get()->GetWindowHeightFloat();
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+		deviceContext->RSSetViewports(1, &viewport);
+	}
+
+	//temp for below process
+
+	//create vertex buffer
+	{
+		struct Vertex
+		{
+			float position[3];
+			float padding;
+			float color[4] = { 1.0f,0.0f,0.0f,1.0f };
+		} vertices[3];
+
+		vertices[0].position[0] = 0.5f; vertices[0].position[1] = 0.5f; vertices[0].position[2] = 0.0f;
+		vertices[1].position[0] = 0.5f; vertices[1].position[1] = -0.5f; vertices[1].position[2] = 0.0f;
+		vertices[2].position[0] = -0.5f; vertices[2].position[1] = -0.5f; vertices[2].position[2] = 0.0f;
+
+		D3D11_BUFFER_DESC desc;
+		ZeroMemory(&desc, sizeof(desc));
+		desc.Usage = D3D11_USAGE_IMMUTABLE; //gpu에서만 사용, cpu에서 수정 불가능
+		desc.BindFlags = D3D11_BIND_VERTEX_BUFFER; //정점 버퍼로 사용
+		desc.ByteWidth = sizeof(vertices);
+
+		D3D11_SUBRESOURCE_DATA data;
+		ZeroMemory(&data, sizeof(data));
+		data.pSysMem = vertices;
+
+		device->CreateBuffer(&desc, &data, &vertexBuffer);
+	}
+
+	//create vertex shader
+	
+	{
+		HRESULT hr = D3DCompileFromFile(
+			L"../_Shaders/Default.hlsl",
+			nullptr,
+			nullptr,
+			"VS",
+			"vs_5_0",
+			D3DCOMPILE_DEBUG,
+			0,
+			&vsBlob,
+			nullptr);
+
+		Check(hr);
+
+		hr = device->CreateVertexShader(
+			vsBlob->GetBufferPointer(),
+			vsBlob->GetBufferSize(),
+			nullptr,
+			&vertexShader
+		);
+
+		Check(hr);
+	}
+
+	//create pixel shader
+	{
+		HRESULT hr = D3DCompileFromFile(
+			L"../_Shaders/Default.hlsl",
+			nullptr,
+			nullptr,
+			"PS",
+			"ps_5_0",
+			D3DCOMPILE_DEBUG,
+			0,
+			&psBlob,
+			nullptr);
+
+		Check(hr);
+
+		hr = device->CreatePixelShader(
+			psBlob->GetBufferPointer(),
+			psBlob->GetBufferSize(),
+			nullptr,
+			&pixelShader
+		);
+
+		Check(hr);
+	}
+
+	//create input layout
+	{
+		D3D11_INPUT_ELEMENT_DESC descs[] =
+		{
+			{
+				"Position",
+				0,
+				DXGI_FORMAT_R32G32B32_FLOAT,
+				0,
+				0,
+				D3D11_INPUT_PER_VERTEX_DATA,
+				0
+			},
+			{
+				"Color",
+				0,
+				DXGI_FORMAT_R32G32B32A32_FLOAT,
+				0,
+				16,
+				D3D11_INPUT_PER_VERTEX_DATA,
+				0
+			}
+		};
+		device->CreateInputLayout(
+			descs,
+			ARRAYSIZE(descs),
+			vsBlob->GetBufferPointer(),
+			vsBlob->GetBufferSize(),
+			&inputLayout
+		);
+	}
+
+	uint stride = 32; //vertex 크기
+	uint offset = 0;
+
+	deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	deviceContext->IASetInputLayout(inputLayout);
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	deviceContext->VSSetShader(vertexShader, nullptr, 0);
+	
+	deviceContext->PSSetShader(pixelShader, nullptr, 0);
+	
+	deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+	
+	
 }
 
 void D3D::Resize()
@@ -92,6 +218,15 @@ void D3D::Resize()
 
 void D3D::Destroy()
 {
+	SAFE_RELEASE(vertexShader);
+	SAFE_RELEASE(pixelShader);
+
+	SAFE_RELEASE(vertexBuffer);
+	SAFE_RELEASE(inputLayout);
+
+	SAFE_RELEASE(vsBlob);
+	SAFE_RELEASE(psBlob);
+
 	SAFE_RELEASE(rtv);
 
 	SAFE_RELEASE(swapChain);
@@ -108,6 +243,7 @@ void D3D::Render_Begin()
 	float color[4] = { 0.2f,0.2f,0.2f,0.2f };
 	deviceContext->ClearRenderTargetView(rtv, color);
 
+	deviceContext->Draw(3, 0);
 }
 
 void D3D::Render_End()
